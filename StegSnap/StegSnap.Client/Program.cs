@@ -30,7 +30,6 @@ namespace StegSnap.Client
             //    "C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\TEST---snapshot_20230508_122825.jpg",
             //    "password",
             //    "test");
-
             string serverAddress = "127.0.0.1";
             int serverPort = 3000;
 
@@ -45,6 +44,16 @@ namespace StegSnap.Client
             _clientId = await RegisterWithServerAsync(_serverClient);
 
             Console.WriteLine($"Client ID: {_clientId}");
+            //inject f5 service
+            // Create a new instance of the ServiceCollection class
+            var services = new ServiceCollection();
+
+            // Register the services provided by the class library projects
+            services.AddF5Services();
+
+            // Build the service provider
+            var serviceProvider = services.BuildServiceProvider();
+            var service = serviceProvider.GetService<IF5Service>();
 
             await Task.Run(async () =>
             {
@@ -61,19 +70,12 @@ namespace StegSnap.Client
                                 string imagePath = CaptureImageFromCamera();
                                 string embededImagePath;
                                 string? errorMsg = null;
-                                //inject f5 service
-                                // Create a new instance of the ServiceCollection class
-                                var services = new ServiceCollection();
+                                serviceProvider = services.BuildServiceProvider();
+                                service = serviceProvider.GetService<IF5Service>();
 
-                                // Register the services provided by the class library projects
-                                services.AddF5Services();
-
-                                // Build the service provider
-                                var serviceProvider = services.BuildServiceProvider();
-                                var service = serviceProvider.GetService<IF5Service>();
                                 try
                                 {
-                                    embededImagePath = EmbedHiddenData(imagePath, "test", "password", service);
+                                    embededImagePath = EmbedHiddenData(imagePath, GetDiskTotalFreeSpaceInfo(), "password", service);
                                     Console.WriteLine($"Successfully embeded data in image {embededImagePath}");
                                 }
                                 catch (CapacityException ce)
@@ -173,6 +175,22 @@ namespace StegSnap.Client
             service.Embed(fileName, outPath, password, message);
 
             return outPath;
+        }
+
+
+        static string GetDiskTotalFreeSpaceInfo()
+        {
+            DriveInfo[] drives = DriveInfo.GetDrives();
+            var result = string.Empty;
+            foreach (DriveInfo drive in drives)
+            {
+                if (drive.IsReady && drive.Name == "C:\\")
+                {
+                    result =  $"Remaining Space: {drive.TotalFreeSpace / (1024)} KB";
+                }
+            }
+
+            return result;
         }
     }
 }

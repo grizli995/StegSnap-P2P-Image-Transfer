@@ -20,6 +20,25 @@ namespace StegSnap.Server
 
         static async Task Main(string[] args)
         {
+            int port = 3000;
+            _listener = new TcpListener(IPAddress.Any, port);
+            _listener.Start();
+
+            Console.WriteLine($"Server started on port {port}");
+
+            while (true)
+            {
+                var client = await _listener.AcceptTcpClientAsync();
+                Console.WriteLine("Client connected");
+                _ = HandleClientAsync(client);
+            }
+        }
+
+        private static async Task HandleClientAsync(TcpClient client)
+        {
+            var clientId = Guid.NewGuid();
+            _clients.TryAdd(clientId, client);
+
             //inject f5 service
             // Create a new instance of the ServiceCollection class
             var services = new ServiceCollection();
@@ -31,25 +50,6 @@ namespace StegSnap.Server
             var serviceProvider = services.BuildServiceProvider();
             var service = serviceProvider.GetService<IF5Service>();
 
-
-            int port = 3000;
-            _listener = new TcpListener(IPAddress.Any, port);
-            _listener.Start();
-
-            Console.WriteLine($"Server started on port {port}");
-
-            while (true)
-            {
-                var client = await _listener.AcceptTcpClientAsync();
-                Console.WriteLine("Client connected");
-                _ = HandleClientAsync(client, service);
-            }
-        }
-
-        private static async Task HandleClientAsync(TcpClient client, IF5Service service)
-        {
-            var clientId = Guid.NewGuid();
-            _clients.TryAdd(clientId, client);
 
             try
             {
@@ -95,16 +95,9 @@ namespace StegSnap.Server
                             {
                                 try
                                 {
-                                    //inject f5 service
-                                    // Create a new instance of the ServiceCollection class
-                                    var services = new ServiceCollection();
-
-                                    // Register the services provided by the class library projects
-                                    services.AddF5Services();
-
-                                    // Build the service provider
-                                    var serviceProvider = services.BuildServiceProvider();
+                                    serviceProvider = services.BuildServiceProvider();
                                     service = serviceProvider.GetService<IF5Service>();
+
                                     var extractedMsg = ExtractMessage("password", filePathToExtract, service);
                                     Console.WriteLine("Extracted message is: ");
                                     Console.WriteLine(extractedMsg);
