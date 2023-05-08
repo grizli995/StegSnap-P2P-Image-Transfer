@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grizlah.Steganography.F5.StegSharp.Infrastructure" Version="1.0.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\StegSnap.Domain\StegSnap.Domain.csproj" />
   </ItemGroup>
 

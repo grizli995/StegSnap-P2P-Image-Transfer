@@ -2,6 +2,16 @@
 using StegSnap.Server.Common.Models;
 using System.Net.Sockets;
 using System.Text.Json;
+using Emgu.CV;
+using System.Drawing.Imaging;
+using Emgu.CV.Structure;
+using StegSharp.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using StegSharp.Application.Common.Interfaces;
+using StegSharp.Application.Common.Exceptions;
+using System.Drawing;
+using static System.Net.Mime.MediaTypeNames;
+using System.IO;
 
 namespace StegSnap.Client
 {
@@ -14,6 +24,13 @@ namespace StegSnap.Client
 
         static async Task Main(string[] args)
         {
+
+            //service.Embed(
+            //    "C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\snapshot_20230508_122825.jpg",
+            //    "C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\TEST---snapshot_20230508_122825.jpg",
+            //    "password",
+            //    "test");
+
             string serverAddress = "127.0.0.1";
             int serverPort = 3000;
 
@@ -35,17 +52,52 @@ namespace StegSnap.Client
                 while (_serverClient.Connected)
                 {
                     var messageJson = await reader.ReadLineAsync();
-                    var message = JsonSerializer.Deserialize<Message>(messageJson);
-
-                    switch (message.Type)
+                    if (!String.IsNullOrEmpty(messageJson))
                     {
-                        case MessageType.SnapshotRequest:
-                            string imagePath = "C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Images\\jo.jpg";
-                            byte[] imageData = ReadImageFile(imagePath);
-                            await SendImageToServerAsync(imageData);
-                            break;
-                            // Handle other message types here
+                        var message = JsonSerializer.Deserialize<Message>(messageJson);
+                        switch (message.Type)
+                        {
+                            case MessageType.SnapshotRequest:
+                                string imagePath = CaptureImageFromCamera();
+                                string embededImagePath;
+                                string? errorMsg = null;
+                                //inject f5 service
+                                // Create a new instance of the ServiceCollection class
+                                var services = new ServiceCollection();
+
+                                // Register the services provided by the class library projects
+                                services.AddF5Services();
+
+                                // Build the service provider
+                                var serviceProvider = services.BuildServiceProvider();
+                                var service = serviceProvider.GetService<IF5Service>();
+                                try
+                                {
+                                    embededImagePath = EmbedHiddenData(imagePath, "test", "password", service);
+                                    Console.WriteLine($"Successfully embeded data in image {embededImagePath}");
+                                }
+                                catch (CapacityException ce)
+                                {
+                                    Console.WriteLine(ce.Message);
+                                    embededImagePath = imagePath;
+                                    errorMsg = ce.Message;
+                                }
+                                catch (Exception e)
+                                {
+                                    Console.WriteLine(e.Message);
+                                    embededImagePath = imagePath;
+                                    errorMsg = e.Message;
+                                }
+                                byte[] imageData = ReadImageFile(embededImagePath);
+                                await SendImageToServerAsync(imageData, errorMsg);
+                                if (errorMsg == null)
+                                    Console.WriteLine("Successfully sent embedded snapshot.");
+                                break;
+                                // Handle other message types here
+                        }
                     }
+
+
                 }
             });
 
@@ -58,6 +110,7 @@ namespace StegSnap.Client
                 Payload = "192.168.1.100:4000"
             };
             await SendMessageToServerAsync(message);
+            Console.WriteLine("UPDATE IP ADDRESS MSG SENT");
             //await SendImageToServerAsync(ReadImageFile("C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Images\\h.jpg"));
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
@@ -87,15 +140,39 @@ namespace StegSnap.Client
             return File.ReadAllBytes(imagePath);
         }
 
-        private static async Task SendImageToServerAsync(byte[] imageData)
+        private static async Task SendImageToServerAsync(byte[] imageData, string? errorMessage = null)
         {
             var message = new Message
             {
                 Type = MessageType.SnapshotResponse,
-                ImageData = imageData
+                ImageData = imageData,
+                ErrorMessage = errorMessage
             };
 
             await SendMessageToServerAsync(message);
+        }
+
+        private static string CaptureImageFromCamera()
+        {
+            using var cameraCapture = new VideoCapture();
+            Mat frame = new Mat();
+
+            cameraCapture.Read(frame);
+
+            //var fileName = $"C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\1.jpg";
+            var fileName = $"C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\snapshot_{DateTime.UtcNow.ToString("yyyyMMdd_hhmmss")}.jpg";
+            frame.ToImage<Bgr, byte>().Save(fileName);
+
+            return fileName;
+        }
+
+        private static string EmbedHiddenData(string fileName, string message, string password, IF5Service service)
+        {
+            var outPath = fileName.Substring(0, fileName.Length - 4) + "_embedded.jpg";
+
+            service.Embed(fileName, outPath, password, message);
+
+            return outPath;
         }
     }
 }
