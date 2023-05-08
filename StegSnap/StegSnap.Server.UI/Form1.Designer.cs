@@ -53,15 +53,16 @@
             // pb_snapshot_image
             // 
             this.pb_snapshot_image.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pb_snapshot_image.Location = new System.Drawing.Point(6, 23);
+            this.pb_snapshot_image.Location = new System.Drawing.Point(4, 20);
             this.pb_snapshot_image.Name = "pb_snapshot_image";
             this.pb_snapshot_image.Size = new System.Drawing.Size(640, 480);
             this.pb_snapshot_image.TabIndex = 0;
             this.pb_snapshot_image.TabStop = false;
+            this.pb_snapshot_image.Click += new System.EventHandler(this.pb_snapshot_image_Click);
             // 
             // tb_snapshot_message
             // 
-            this.tb_snapshot_message.Location = new System.Drawing.Point(117, 509);
+            this.tb_snapshot_message.Location = new System.Drawing.Point(118, 506);
             this.tb_snapshot_message.Name = "tb_snapshot_message";
             this.tb_snapshot_message.Size = new System.Drawing.Size(529, 23);
             this.tb_snapshot_message.TabIndex = 1;
@@ -69,7 +70,7 @@
             // lbl_snapshot_message
             // 
             this.lbl_snapshot_message.AutoSize = true;
-            this.lbl_snapshot_message.Location = new System.Drawing.Point(6, 517);
+            this.lbl_snapshot_message.Location = new System.Drawing.Point(6, 514);
             this.lbl_snapshot_message.Name = "lbl_snapshot_message";
             this.lbl_snapshot_message.Size = new System.Drawing.Size(108, 15);
             this.lbl_snapshot_message.TabIndex = 3;
@@ -78,7 +79,7 @@
             // lbl_client_id
             // 
             this.lbl_client_id.AutoSize = true;
-            this.lbl_client_id.Location = new System.Drawing.Point(6, 545);
+            this.lbl_client_id.Location = new System.Drawing.Point(6, 543);
             this.lbl_client_id.Name = "lbl_client_id";
             this.lbl_client_id.Size = new System.Drawing.Size(54, 15);
             this.lbl_client_id.TabIndex = 4;
@@ -86,7 +87,7 @@
             // 
             // tb_client_id
             // 
-            this.tb_client_id.Location = new System.Drawing.Point(117, 537);
+            this.tb_client_id.Location = new System.Drawing.Point(118, 535);
             this.tb_client_id.Name = "tb_client_id";
             this.tb_client_id.Size = new System.Drawing.Size(529, 23);
             this.tb_client_id.TabIndex = 5;
@@ -95,34 +96,35 @@
             // 
             this.gb_snapshot.Controls.Add(this.tb_error);
             this.gb_snapshot.Controls.Add(this.lbl_error);
-            this.gb_snapshot.Controls.Add(this.tb_client_id);
-            this.gb_snapshot.Controls.Add(this.lbl_snapshot_message);
-            this.gb_snapshot.Controls.Add(this.tb_snapshot_message);
             this.gb_snapshot.Controls.Add(this.pb_snapshot_image);
             this.gb_snapshot.Controls.Add(this.lbl_client_id);
+            this.gb_snapshot.Controls.Add(this.tb_client_id);
+            this.gb_snapshot.Controls.Add(this.tb_snapshot_message);
+            this.gb_snapshot.Controls.Add(this.lbl_snapshot_message);
             this.gb_snapshot.Location = new System.Drawing.Point(339, 9);
             this.gb_snapshot.Name = "gb_snapshot";
-            this.gb_snapshot.Size = new System.Drawing.Size(657, 634);
+            this.gb_snapshot.Size = new System.Drawing.Size(658, 646);
             this.gb_snapshot.TabIndex = 6;
             this.gb_snapshot.TabStop = false;
             this.gb_snapshot.Text = "Latest Snapshot";
             // 
             // tb_error
             // 
-            this.tb_error.Location = new System.Drawing.Point(117, 569);
+            this.tb_error.Location = new System.Drawing.Point(118, 564);
             this.tb_error.Multiline = true;
             this.tb_error.Name = "tb_error";
-            this.tb_error.Size = new System.Drawing.Size(529, 59);
+            this.tb_error.Size = new System.Drawing.Size(529, 50);
             this.tb_error.TabIndex = 7;
             // 
             // lbl_error
             // 
             this.lbl_error.AutoSize = true;
-            this.lbl_error.Location = new System.Drawing.Point(6, 577);
+            this.lbl_error.Location = new System.Drawing.Point(6, 567);
             this.lbl_error.Name = "lbl_error";
             this.lbl_error.Size = new System.Drawing.Size(84, 15);
             this.lbl_error.TabIndex = 6;
             this.lbl_error.Text = "Error Message:";
+            this.lbl_error.Click += new System.EventHandler(this.lbl_error_Click);
             // 
             // rtb_console
             // 
@@ -132,7 +134,7 @@
             this.rtb_console.Location = new System.Drawing.Point(12, 314);
             this.rtb_console.Name = "rtb_console";
             this.rtb_console.ReadOnly = true;
-            this.rtb_console.Size = new System.Drawing.Size(321, 329);
+            this.rtb_console.Size = new System.Drawing.Size(321, 341);
             this.rtb_console.TabIndex = 7;
             this.rtb_console.Text = "";
             this.rtb_console.TextChanged += new System.EventHandler(this.rtb_console_TextChanged);
@@ -186,7 +188,7 @@
             this.optionsToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1008, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(1007, 24);
             this.menuStrip1.TabIndex = 14;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -201,7 +203,7 @@
             // configureToolStripMenuItem
             // 
             this.configureToolStripMenuItem.Name = "configureToolStripMenuItem";
-            this.configureToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.configureToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
             this.configureToolStripMenuItem.Text = "Configuration";
             this.configureToolStripMenuItem.Click += new System.EventHandler(this.configureToolStripMenuItem_Click);
             // 
@@ -209,7 +211,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1008, 655);
+            this.ClientSize = new System.Drawing.Size(1007, 660);
             this.Controls.Add(this.lb_clients);
             this.Controls.Add(this.lbl_clients);
             this.Controls.Add(this.tb_server_ip);

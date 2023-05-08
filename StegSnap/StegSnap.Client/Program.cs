@@ -135,6 +135,7 @@ namespace StegSnap.Client
             return fullName;
         }
 
+
         private static string EmbedHiddenData(string fileName, string message, string password, IF5Service service)
         {
             var outPath = fileName.Substring(0, fileName.Length - 4) + "_embedded.jpg";

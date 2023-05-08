@@ -111,5 +111,15 @@ namespace StegSnap.Server.UI
                 }
             }
         }
+
+        private void pb_snapshot_image_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lbl_error_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

@@ -18,7 +18,7 @@ namespace StegSnap.Server.UI
         private TcpListener _listener;
         private readonly ConcurrentDictionary<Guid, TcpClient> _clients = new ConcurrentDictionary<Guid, TcpClient>();
         private System.Threading.Timer _imageRequestTimer;
-        private int imageRequestInterval = 20000; // 20 seconds
+        private int imageRequestInterval = 10000; // 10 seconds
         private readonly Action<Guid, Image, string, string> _onImageReceivedAndDataExtracted;
         private readonly Action<string> _onConsoleWriteLine;
 
