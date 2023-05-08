@@ -24,36 +24,7 @@ namespace StegSnap.Client
 
         static async Task Main(string[] args)
         {
-
-            //service.Embed(
-            //    "C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\snapshot_20230508_122825.jpg",
-            //    "C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\TEST---snapshot_20230508_122825.jpg",
-            //    "password",
-            //    "test");
-            string serverAddress = "127.0.0.1";
-            int serverPort = 3000;
-
-            _serverClient = new TcpClient();
-            await _serverClient.ConnectAsync(serverAddress, serverPort);
-
-            Console.WriteLine($"Connected to server at {serverAddress}:{serverPort}");
-
-            _networkStream = _serverClient.GetStream();
-            _streamWriter = new StreamWriter(_networkStream);
-
-            _clientId = await RegisterWithServerAsync(_serverClient);
-
-            Console.WriteLine($"Client ID: {_clientId}");
-            //inject f5 service
-            // Create a new instance of the ServiceCollection class
-            var services = new ServiceCollection();
-
-            // Register the services provided by the class library projects
-            services.AddF5Services();
-
-            // Build the service provider
-            var serviceProvider = services.BuildServiceProvider();
-            var service = serviceProvider.GetService<IF5Service>();
+            await SetupServerConnection();
 
             await Task.Run(async () =>
             {
@@ -67,66 +38,53 @@ namespace StegSnap.Client
                         switch (message.Type)
                         {
                             case MessageType.SnapshotRequest:
-                                string imagePath = CaptureImageFromCamera();
-                                string embededImagePath;
-                                string? errorMsg = null;
-                                serviceProvider = services.BuildServiceProvider();
-                                service = serviceProvider.GetService<IF5Service>();
-
-                                try
-                                {
-                                    embededImagePath = EmbedHiddenData(imagePath, GetDiskTotalFreeSpaceInfo(), "password", service);
-                                    Console.WriteLine($"Successfully embeded data in image {embededImagePath}");
-                                }
-                                catch (CapacityException ce)
-                                {
-                                    Console.WriteLine(ce.Message);
-                                    embededImagePath = imagePath;
-                                    errorMsg = ce.Message;
-                                }
-                                catch (Exception e)
-                                {
-                                    Console.WriteLine(e.Message);
-                                    embededImagePath = imagePath;
-                                    errorMsg = e.Message;
-                                }
-                                byte[] imageData = ReadImageFile(embededImagePath);
-                                await SendImageToServerAsync(imageData, errorMsg);
-                                if (errorMsg == null)
-                                    Console.WriteLine("Successfully sent embedded snapshot.");
+                                await HandleSnaphostRequestMessage();
                                 break;
-                                // Handle other message types here
                         }
                     }
-
-
                 }
             });
 
-            // Add application logic here, e.g., file sharing, chat, etc.
-
-            // Example: Send an IP address update message to the server
-            var message = new Message
-            {
-                Type = MessageType.UpdateIPAddress,
-                Payload = "192.168.1.100:4000"
-            };
-            await SendMessageToServerAsync(message);
-            Console.WriteLine("UPDATE IP ADDRESS MSG SENT");
-            //await SendImageToServerAsync(ReadImageFile("C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Images\\h.jpg"));
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
+            //// Example: Send an IP address update message to the server
+            //var message = new Message
+            //{
+            //    Type = MessageType.UpdateIPAddress,
+            //    Payload = "192.168.1.100:4000"
+            //};
+            //await SendMessageToServerAsync(message);
+            //Console.WriteLine("UPDATE IP ADDRESS MSG SENT");
+            ////await SendImageToServerAsync(ReadImageFile("C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Images\\h.jpg"));
+            //Console.WriteLine("Press any key to exit...");
+            //Console.ReadKey();
 
             // Properly close the StreamWriter and TcpClient before exiting
             _streamWriter.Dispose();
             _serverClient.Close();
         }
 
+        private static async Task SetupServerConnection()
+        {
+            Console.WriteLine("Please enter the server IP address. (default 127.0.0.1)");
+            string serverAddress = Console.ReadLine();
+
+            int serverPort = 3000;
+            _serverClient = new TcpClient();
+            await _serverClient.ConnectAsync(serverAddress, serverPort);
+
+            Console.WriteLine($"Connected to server at {serverAddress}:{serverPort}");
+
+            _networkStream = _serverClient.GetStream();
+            _streamWriter = new StreamWriter(_networkStream);
+
+            _clientId = await RegisterWithServerAsync(_serverClient);
+
+            Console.WriteLine($"Client ID: {_clientId}");
+        }
+
         private static async Task<Guid> RegisterWithServerAsync(TcpClient serverClient)
         {
             var reader = new StreamReader(_networkStream);
             var clientId = Guid.Parse(await reader.ReadLineAsync());
-            //reader.Dispose(); // Dispose the StreamReader manually
             return clientId;
         }
 
@@ -161,11 +119,20 @@ namespace StegSnap.Client
 
             cameraCapture.Read(frame);
 
-            //var fileName = $"C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\1.jpg";
-            var fileName = $"C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output\\snapshot_{DateTime.UtcNow.ToString("yyyyMMdd_hhmmss")}.jpg";
-            frame.ToImage<Bgr, byte>().Save(fileName);
+            var filePath = $"C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output";
+            var fileName = $"\\snapshot_{DateTime.UtcNow.ToString("yyyyMMdd_hhmmss")}.jpg";
+            var fullName = $"{filePath}{fileName}";
 
-            return fileName;
+            try
+            {
+                frame.ToImage<Bgr, byte>().Save(fullName);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+            return fullName;
         }
 
         private static string EmbedHiddenData(string fileName, string message, string password, IF5Service service)
@@ -191,6 +158,51 @@ namespace StegSnap.Client
             }
 
             return result;
+        }
+
+        private static IF5Service? InjectF5Service()
+        {
+            //inject f5 service
+            // Create a new instance of the ServiceCollection class
+            var services = new ServiceCollection();
+
+            // Register the services provided by the class library projects
+            services.AddF5Services();
+
+            // Build the service provider
+            var serviceProvider = services.BuildServiceProvider();
+            var service = serviceProvider.GetService<IF5Service>();
+
+            return service;
+        }
+
+        private async static Task HandleSnaphostRequestMessage()
+        {
+            string embededImagePath;
+            string? errorMsg = null;
+            string imagePath = CaptureImageFromCamera();
+            var service = InjectF5Service();
+            try
+            {
+                embededImagePath = EmbedHiddenData(imagePath, GetDiskTotalFreeSpaceInfo(), "password", service);
+                Console.WriteLine($"Successfully embeded data in image {embededImagePath}");
+            }
+            catch (CapacityException ce)
+            {
+                Console.WriteLine(ce.Message);
+                embededImagePath = imagePath;
+                errorMsg = ce.Message;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                embededImagePath = imagePath;
+                errorMsg = e.Message;
+            }
+            byte[] imageData = ReadImageFile(embededImagePath);
+            await SendImageToServerAsync(imageData, errorMsg);
+            if (errorMsg == null)
+                Console.WriteLine("Successfully sent embedded snapshot.");
         }
     }
 }
