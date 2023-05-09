@@ -12,6 +12,7 @@ using StegSharp.Application.Common.Exceptions;
 using System.Drawing;
 using static System.Net.Mime.MediaTypeNames;
 using System.IO;
+using MethodTimer;
 
 namespace StegSnap.Client
 {
@@ -21,11 +22,16 @@ namespace StegSnap.Client
         private static Guid _clientId;
         private static NetworkStream _networkStream;
         private static StreamWriter _streamWriter;
+        private static string FilePathToRead;
+        private static string DefaultFilePathToRead = "C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\input.txt";
 
         static async Task Main(string[] args)
         {
             await SetupServerConnection();
 
+            SetupInputFilePath();
+
+            VideoCapture cam = CreateVideoCapture();
             await Task.Run(async () =>
             {
                 using var reader = new StreamReader(_networkStream);
@@ -38,7 +44,7 @@ namespace StegSnap.Client
                         switch (message.Type)
                         {
                             case MessageType.SnapshotRequest:
-                                await HandleSnaphostRequestMessage();
+                                await HandleSnaphostRequestMessage(cam);
                                 break;
                         }
                     }
@@ -62,14 +68,26 @@ namespace StegSnap.Client
             _serverClient.Close();
         }
 
+        private static void SetupInputFilePath()
+        {
+            Console.WriteLine("Please specify path to the txt input.");
+            var path = Console.ReadLine();
+            if (!String.IsNullOrEmpty(path))
+            {
+                FilePathToRead = path;
+            }
+        }
+
         private static async Task SetupServerConnection()
         {
             Console.WriteLine("Please enter the server IP address. (default 127.0.0.1)");
             string serverAddress = Console.ReadLine();
+            if (String.IsNullOrEmpty(serverAddress))
+                serverAddress = "127.0.0.1";
 
             int serverPort = 3000;
             _serverClient = new TcpClient();
-            await _serverClient.ConnectAsync(serverAddress, serverPort);
+            await _serverClient.ConnectAsync(serverAddress , serverPort);
 
             Console.WriteLine($"Connected to server at {serverAddress}:{serverPort}");
 
@@ -95,11 +113,13 @@ namespace StegSnap.Client
             await _streamWriter.FlushAsync();
         }
 
+        [Time]
         private static byte[] ReadImageFile(string imagePath)
         {
             return File.ReadAllBytes(imagePath);
         }
 
+        [Time]
         private static async Task SendImageToServerAsync(byte[] imageData, string? errorMessage = null)
         {
             var message = new Message
@@ -112,10 +132,10 @@ namespace StegSnap.Client
             await SendMessageToServerAsync(message);
         }
 
-        private static string CaptureImageFromCamera()
+        [Time]
+        private static string CaptureImageFromCamera(VideoCapture cameraCapture)
         {
-            using var cameraCapture = new VideoCapture();
-            Mat frame = new Mat();
+            Mat frame = CreateFrame();
 
             cameraCapture.Read(frame);
 
@@ -123,6 +143,14 @@ namespace StegSnap.Client
             var fileName = $"\\snapshot_{DateTime.UtcNow.ToString("yyyyMMdd_hhmmss")}.jpg";
             var fullName = $"{filePath}{fileName}";
 
+            SaveImage(frame, fullName);
+
+            return fullName;
+        }
+
+        [Time]
+        private static void SaveImage(Mat frame, string fullName)
+        {
             try
             {
                 frame.ToImage<Bgr, byte>().Save(fullName);
@@ -131,11 +159,21 @@ namespace StegSnap.Client
             {
                 Console.WriteLine(e.Message);
             }
-
-            return fullName;
         }
 
+        [Time]
+        private static Mat CreateFrame()
+        {
+            return new Mat();
+        }
 
+        [Time]
+        private static VideoCapture CreateVideoCapture()
+        {
+            return new VideoCapture();
+        }
+
+        [Time]
         private static string EmbedHiddenData(string fileName, string message, string password, IF5Service service)
         {
             var outPath = fileName.Substring(0, fileName.Length - 4) + "_embedded.jpg";
@@ -145,22 +183,31 @@ namespace StegSnap.Client
             return outPath;
         }
 
-
-        static string GetDiskTotalFreeSpaceInfo()
+        [Time]
+        static string ReadDataFromFile()
         {
-            DriveInfo[] drives = DriveInfo.GetDrives();
-            var result = string.Empty;
-            foreach (DriveInfo drive in drives)
+            var filePath = FilePathToRead ?? DefaultFilePathToRead;
+            string fileContent = "";
+
+            try
             {
-                if (drive.IsReady && drive.Name == "C:\\")
+                // Open the text file using a stream reader.
+                using (StreamReader reader = new StreamReader(filePath))
                 {
-                    result =  $"Remaining Space: {drive.TotalFreeSpace / (1024)} KB";
+                    // Read the entire file content.
+                    fileContent = reader.ReadToEnd();
                 }
             }
+            catch (Exception ex)
+            {
+                // Handle any errors that occur while reading the file.
+                Console.WriteLine("Error occurred while reading the file: " + ex.Message);
+            }
 
-            return result;
+            return fileContent;
         }
 
+        [Time]
         private static IF5Service? InjectF5Service()
         {
             //inject f5 service
@@ -177,15 +224,16 @@ namespace StegSnap.Client
             return service;
         }
 
-        private async static Task HandleSnaphostRequestMessage()
+        [Time]
+        private async static Task HandleSnaphostRequestMessage(VideoCapture cam)
         {
             string embededImagePath;
             string? errorMsg = null;
-            string imagePath = CaptureImageFromCamera();
+            string imagePath = CaptureImageFromCamera(cam);
             var service = InjectF5Service();
             try
             {
-                embededImagePath = EmbedHiddenData(imagePath, GetDiskTotalFreeSpaceInfo(), "password", service);
+                embededImagePath = EmbedHiddenData(imagePath, ReadDataFromFile(), "password", service);
                 Console.WriteLine($"Successfully embeded data in image {embededImagePath}");
             }
             catch (CapacityException ce)
