@@ -23,6 +23,7 @@ namespace StegSnap.Client
         private static NetworkStream _networkStream;
         private static StreamWriter _streamWriter;
         private static string FilePathToRead;
+        private static string DefaultPath = $"C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output";
         private static string DefaultFilePathToRead = "C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\input.txt";
 
         static async Task Main(string[] args)
@@ -132,14 +133,13 @@ namespace StegSnap.Client
             await SendMessageToServerAsync(message);
         }
 
-        [Time]
         private static string CaptureImageFromCamera(VideoCapture cameraCapture)
         {
-            Mat frame = CreateFrame();
+            Mat frame = new Mat();
 
             cameraCapture.Read(frame);
 
-            var filePath = $"C:\\Files\\Faks\\Faks\\Diplomski rad\\Implementacija\\StegSnap-P2P-Image-Transfer\\StegSnap\\Output";
+            var filePath = DefaultPath;
             var fileName = $"\\snapshot_{DateTime.UtcNow.ToString("yyyyMMdd_hhmmss")}.jpg";
             var fullName = $"{filePath}{fileName}";
 
@@ -148,7 +148,6 @@ namespace StegSnap.Client
             return fullName;
         }
 
-        [Time]
         private static void SaveImage(Mat frame, string fullName)
         {
             try
